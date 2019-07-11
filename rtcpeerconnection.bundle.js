@@ -1,29 +1,4 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.PeerConnection = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],2:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -1775,7 +1750,7 @@ function stubFalse() {
 module.exports = cloneDeep;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -1961,7 +1936,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 var toSDP = require('./lib/tosdp');
 var toJSON = require('./lib/tojson');
 
@@ -2083,7 +2058,7 @@ exports.toCandidateJSON = toJSON.toCandidateJSON;
 exports.toMediaJSON = toJSON.toMediaJSON;
 exports.toSessionJSON = toJSON.toSessionJSON;
 
-},{"./lib/tojson":7,"./lib/tosdp":8}],5:[function(require,module,exports){
+},{"./lib/tojson":6,"./lib/tosdp":7}],4:[function(require,module,exports){
 exports.lines = function (sdp) {
     return sdp.split(/\r?\n/).filter(function (line) {
         return line.length > 0;
@@ -2354,7 +2329,7 @@ exports.msid = function (line) {
     };
 };
 
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 module.exports = {
     initiator: {
         incoming: {
@@ -2402,7 +2377,7 @@ module.exports = {
     }
 };
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var SENDERS = require('./senders');
 var parsers = require('./parsers');
 var idCounter = Math.random();
@@ -2541,6 +2516,9 @@ exports.toMediaJSON = function (media, session, opts) {
         if (parsers.findLine('a=rtcp-mux', lines)) {
             desc.mux = true;
         }
+        if (parsers.findLine('a=rtcp-rsize', lines)) {
+            desc.rsize = true;
+        }
 
         var fbLines = parsers.findLines('a=rtcp-fb:*', lines);
         fbLines.forEach(function (line) {
@@ -2626,7 +2604,7 @@ exports.toCandidateJSON = function (line) {
     return candidate;
 };
 
-},{"./parsers":5,"./senders":6}],8:[function(require,module,exports){
+},{"./parsers":4,"./senders":5}],7:[function(require,module,exports){
 var SENDERS = require('./senders');
 
 
@@ -2680,10 +2658,12 @@ exports.toMediaSDP = function (content, opts) {
     var payloads = desc.payloads || [];
     var fingerprints = (transport && transport.fingerprints) || [];
 
+    var inactive = content.senders === 'none' && (!transport || !transport.ufrag || !transport.pwd);
+
     var mline = [];
     if (desc.applicationType == 'datachannel') {
         mline.push('application');
-        mline.push('1');
+        mline.push(inactive ? '0' : '1');
         mline.push('DTLS/SCTP');
         if (transport.sctp) {
             transport.sctp.forEach(function (map) {
@@ -2692,7 +2672,7 @@ exports.toMediaSDP = function (content, opts) {
         }
     } else {
         mline.push(desc.media);
-        mline.push('1');
+        mline.push(inactive ? '0' : '1');
         if (fingerprints.length > 0) {
             mline.push('UDP/TLS/RTP/SAVPF');
         } else if (desc.encryption && desc.encryption.length > 0) {
@@ -2742,7 +2722,9 @@ exports.toMediaSDP = function (content, opts) {
     if (desc.applicationType == 'rtp') {
         sdp.push('a=' + (SENDERS[role][direction][content.senders] || 'sendrecv'));
     }
-    sdp.push('a=mid:' + content.name);
+    if (!inactive) {
+        sdp.push('a=mid:' + content.name);
+    }
 
     if (desc.sources && desc.sources.length) {
         var streams = {};
@@ -2761,6 +2743,9 @@ exports.toMediaSDP = function (content, opts) {
 
     if (desc.mux) {
         sdp.push('a=rtcp-mux');
+    }
+    if (desc.rsize) {
+        sdp.push('a=rtcp-rsize');
     }
 
     var encryption = desc.encryption || [];
@@ -2872,7 +2857,32 @@ exports.toCandidateSDP = function (candidate) {
     return 'a=candidate:' + sdp.join(' ');
 };
 
-},{"./senders":6}],9:[function(require,module,exports){
+},{"./senders":5}],8:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],9:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
@@ -3469,7 +3479,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":9,"_process":3,"inherits":1}],11:[function(require,module,exports){
+},{"./support/isBuffer":9,"_process":2,"inherits":8}],11:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based
 on @visionmedia's Emitter from UI Kit.
@@ -4504,5 +4514,5 @@ PeerConnection.prototype.getStats = function () {
 
 module.exports = PeerConnection;
 
-},{"lodash.clonedeep":2,"sdp-jingle-json":4,"util":10,"wildemitter":11}]},{},[12])(12)
+},{"lodash.clonedeep":1,"sdp-jingle-json":3,"util":10,"wildemitter":11}]},{},[12])(12)
 });
