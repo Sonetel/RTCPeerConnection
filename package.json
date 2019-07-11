@@ -17,7 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "lodash.clonedeep": "^4.3.2",
-    "sdp-jingle-json": "github:softwarehutpl/sdp-jingle-json",
+    "sdp-jingle-json": "github:softwarehutpl/sdp-jingle-json#7d1b49b7db58ff990fe0877a73265888f919f268",
     "wildemitter": "1.x"
   },
   "devDependencies": {
