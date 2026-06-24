@@ -10,10 +10,10 @@ lifecycle: inactive
 
 # RTCPeerConnection
 
-> A tiny browser module that gives normalizes and simplifies the API for WebRTC peer connections.
+> A tiny browser module that normalizes and simplifies the WebRTC peer-connection API, wrapping offer/answer and ICE handling in an event-emitter interface (cross-browser).
 
 ## What it contains
-<!-- The actual contents — services, modules, assets. Fill in. -->
+JavaScript browser library (`rtcpeerconnection.js` plus a prebuilt `rtcpeerconnection.bundle.js` for non-browserify/AMD use). Inherits from WildEmitter so consumers listen for `ice`, `offer`, `answer`, `addStream`/`removeStream` and `close` events instead of raw PC callbacks. Published as the npm package `rtcpeerconnection`; `build.js` produces the bundle and `test/` holds bandwidth/ICE/basic browser tests.
 
 ## Ownership
 - **Code owner:** Venkata Kuna (Venkatakuna)
